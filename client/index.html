@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <!-- Crucial for mobile sizing and preventing double-tap zooming -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Netcode Tag Sandbox</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 10px;
+            overflow: hidden;
+            /* Prevents bounce scrolling on mobile */
+            user-select: none;
+            /* Prevents accidental text selection while tapping */
+            -webkit-user-select: none;
+        }
+
+        h1,
+        p {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+
+        /* Container that keeps aspect ratio and scales responsively */
+        #canvasContainer {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        canvas {
+            background: #111;
+            border: 2px solid #444;
+            width: 100%;
+            /* Dynamic scaling */
+            height: auto;
+            display: block;
+        }
+
+        /* Virtual Mobile D-Pad Layout */
+        #mobileControls {
+            display: none;
+            /* Hidden on desktop by default */
+            margin-top: 15px;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .row {
+            display: flex;
+            justify-content: center;
+        }
+
+        .btn {
+            width: 65px;
+            height: 65px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid #666;
+            border-radius: 12px;
+            margin: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            touch-action: none;
+            /* Prevents browser handling touch delay */
+        }
+
+        .btn:active {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Show mobile controls only on devices with touch capabilities */
+        @media (pointer: coarse) {
+            #mobileControls {
+                display: flex;
+            }
+
+            h1,
+            p {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Minimalist Network Tag</h1>
+    <p>Use WASD/Arrows on Desktop or Touch D-Pad on Mobile!</p>
+
+    <div id="canvasContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <!-- On-screen controls -->
+    <div id="mobileControls">
+        <div class="row">
+            <div class="btn" id="btnUp">▲</div>
+        </div>
+        <div class="row">
+            <div class="btn" id="btnLeft">◀</div>
+            <div class="btn" id="btnDown">▼</div>
+            <div class="btn" id="btnRight">▶</div>
+        </div>
+    </div>
+
+    <script src="../shared/physics.js"></script>
+    <script src="client.js"></script>
+</body>
+
+</html>
