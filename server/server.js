@@ -1,101 +1,91 @@
 // server/server.js
-const { WebSocketServer } = require('ws');
+
+const express = require('express');
+const app = express();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http, {
+    cors: { origin: "*" }
+});
+
+// 1. PLACE THE NEW IMPORT HERE (Replaces your old physics import)
 const { updatePlayerPosition, checkCollision } = require('../physics.js');
 
-const wss = new WebSocketServer({ port: 3000 });
+// 2. PLACE THE STATE VARIABLES HERE (Replaces your old let players = {})
+let players = {};
+let bossId = null;
 
-let players = {}; // Stores { id: { x, y, isIt, lastProcessedInput } }
-let inputQueues = {}; // Stores incoming inputs un-processed per player: { id: [] }
-let playerIds = [];
+// Serve static files from the root directory
+app.use(express.static(__dirname + '/../'));
 
-const TICK_RATE = 30;
-const TICK_TIME = 1000 / TICK_RATE; // ~33.33ms
+// 3. PLACE THE ENTIRE CONNECTION BLOCK HERE (Replaces your old connection block completely)
+io.on('connection', (socket) => {
+    console.log(`Player connected: ${socket.id}`);
 
-console.log(`Server running on ws://localhost:3000 at ${TICK_RATE}Hz`);
+    // If this is the first player to join, make them the Boss!
+    if (Object.keys(players).length === 0) {
+        bossId = socket.id;
+    }
 
-wss.on('connection', (ws) => {
-    const id = Math.random().toString(36).substring(2, 9);
-    playerIds.push(id);
-
-    // Default spawning configurations
-    players[id] = {
-        x: Math.random() * 700,
-        y: Math.random() * 500,
-        isIt: playerIds.length === 1, // First player to join is automatically "It"
-        lastProcessedInput: 0
+    // Initialize player state
+    players[socket.id] = {
+        x: Math.random() * 700 + 50,
+        y: Math.random() * 500 + 50,
+        isBoss: (socket.id === bossId)
     };
-    inputQueues[id] = [];
 
-    // Send the joining player their assigned ID
-    ws.send(JSON.stringify({ type: 'init', id: id }));
+    // Broadcast updated state to everyone
+    io.emit('stateUpdate', { players, bossId });
 
-    ws.on('message', (message) => {
-        const data = JSON.parse(message);
-        if (data.type === 'input') {
-            inputQueues[id].push(data);
+    socket.on('move', (movementData) => {
+        if (!players[socket.id]) return;
+
+        // Update position variables using our physics file
+        players[socket.id].vx = movementData.vx;
+        players[socket.id].vy = movementData.vy;
+        updatePlayerPosition(players[socket.id]);
+
+        // 👑 COLLISION & BOSS MECHANIC CHECK
+        if (socket.id === bossId) {
+            for (let otherId in players) {
+                if (otherId !== bossId) {
+                    if (checkCollision(players[bossId], players[otherId])) {
+                        // Tag successful! Swap roles
+                        bossId = otherId;
+
+                        // Update flags
+                        for (let id in players) {
+                            players[id].isBoss = (id === bossId);
+                        }
+
+                        // Broadcast the new Boss notification instantly
+                        io.emit('bossTagged', { newBossId: bossId });
+                        break;
+                    }
+                }
+            }
         }
+
+        // Send current positions out to all clients
+        io.emit('stateUpdate', { players, bossId });
     });
 
-    ws.on('close', () => {
-        const wasIt = players[id]?.isIt;
-        delete players[id];
-        delete inputQueues[id];
-        playerIds = playerIds.filter(pId => pId !== id);
+    socket.on('disconnect', () => {
+        console.log(`Player disconnected: ${socket.id}`);
+        delete players[socket.id];
 
-        // Pass the "It" torch to someone else if the tagged player rage quits
-        if (wasIt && playerIds.length > 0) {
-            players[playerIds[0]].isIt = true;
+        // If the Boss leaves, assign a new Boss randomly
+        if (bossId === socket.id) {
+            const remainingIds = Object.keys(players);
+            bossId = remainingIds.length > 0 ? remainingIds[0] : null;
+            if (bossId) players[bossId].isBoss = true;
         }
+
+        io.emit('stateUpdate', { players, bossId });
     });
 });
 
-// Authoritative Fixed-Timestep Physics Loop
-let lastTime = Date.now();
-setInterval(() => {
-    const now = Date.now();
-    const deltaTime = (now - lastTime) / 1000;
-    lastTime = now;
-
-    // 1. Process all inputs sequentially
-    playerIds.forEach(id => {
-        const queue = inputQueues[id];
-        const player = players[id];
-
-        while (queue.length > 0) {
-            const inputData = queue.shift();
-            // Process move based on fixed time slice
-            updatePlayerPosition(player, inputData.input, 1 / TICK_RATE);
-            player.lastProcessedInput = inputData.sequenceNumber;
-        }
-    });
-
-    // 2. Evaluate Tag Rules
-    if (playerIds.length >= 2) {
-        let p1 = players[playerIds[0]];
-        let p2 = players[playerIds[1]];
-
-        if (checkCollision(p1, p2)) {
-            // Swap roles on collision
-            if (p1.isIt && !p2.wasJustTagged) {
-                p1.isIt = false; p2.isIt = true;
-                p2.wasJustTagged = true; // Prevents instant back-tagging frame locking
-            } else if (p2.isIt && !p1.wasJustTagged) {
-                p2.isIt = false; p1.isIt = true;
-                p1.wasJustTagged = true;
-            }
-        } else {
-            if (p1) p1.wasJustTagged = false;
-            if (p2) p2.wasJustTagged = false;
-        }
-    }
-
-    // 3. Broadcast clean snapshots out to everyone
-    const statePayload = JSON.stringify({
-        type: 'state',
-        players: players
-    });
-
-    wss.clients.forEach(client => {
-        if (client.readyState === 1) client.send(statePayload);
-    });
-}, TICK_TIME);
+// Start the server
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});

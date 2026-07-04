@@ -141,3 +141,35 @@ touchButtons.forEach(button => {
         keys[button.key] = false;
     }, { passive: false });
 });
+// Inside your draw/render loop in client.js
+function drawPlayers(players, currentBossId) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let id in players) {
+        const player = players[id];
+
+        if (id === currentBossId) {
+            // 🔴 The Boss gets an aggressive Red crimson block style
+            ctx.fillStyle = '#ff2a2a';
+        } else {
+            // 🔵 Regular runners stay Blue
+            ctx.fillStyle = '#3a86ff';
+        }
+
+        // Draw the square player block
+        ctx.fillRect(player.x, player.y, 30, 30);
+
+        // Keep your green selection border around your local controlled square
+        if (id === socket.id) {
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(player.x - 2, player.y - 2, 34, 34);
+
+            // Add a text indicator above your own head
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(id === currentBossId ? "YOU ARE BOSS!" : "RUN!", player.x + 15, player.y - 10);
+        }
+    }
+}
