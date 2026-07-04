@@ -84,29 +84,43 @@ function gameLoop(currentTime) {
     // 3. Render Canvas frame
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw players
+    // Get the current boss ID if any player is designated as the boss
+    const currentBossId = Object.keys(serverPlayersState).find(id => serverPlayersState[id].isBoss);
+
+    // Draw players using the Boss tagging logic
     Object.keys(serverPlayersState).forEach(id => {
-        let x, y, isIt;
+        let x, y;
 
         if (id === myId) {
             // Render our predicted/reconciled smooth location
             x = localPlayer.x;
             y = localPlayer.y;
-            isIt = serverPlayersState[id].isIt;
-
-            // Draw a subtle helper indicator around you
-            ctx.strokeStyle = '#00ff00';
-            ctx.strokeRect(x - 4, y - 4, 38, 38);
         } else {
             // Render enemy players directly using latest server update
             x = serverPlayersState[id].x;
             y = serverPlayersState[id].y;
-            isIt = serverPlayersState[id].isIt;
         }
 
-        // Color coding rule for roles
-        ctx.fillStyle = isIt ? '#ff4444' : '#4488ff';
+        // 🔴 The Boss gets an aggressive Red crimson block style, others stay Blue
+        if (id === currentBossId) {
+            ctx.fillStyle = '#ff2a2a';
+        } else {
+            ctx.fillStyle = '#3a86ff';
+        }
         ctx.fillRect(x, y, 30, 30);
+
+        // Keep your green selection border around your local controlled square
+        if (id === myId) {
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x - 2, y - 2, 34, 34);
+
+            // Add a text indicator above your own head
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(id === currentBossId ? "YOU ARE BOSS!" : "RUN!", x + 15, y - 10);
+        }
     });
 }
 requestAnimationFrame(gameLoop);
@@ -141,35 +155,3 @@ touchButtons.forEach(button => {
         keys[button.key] = false;
     }, { passive: false });
 });
-// Inside your draw/render loop in client.js
-function drawPlayers(players, currentBossId) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    for (let id in players) {
-        const player = players[id];
-
-        if (id === currentBossId) {
-            // 🔴 The Boss gets an aggressive Red crimson block style
-            ctx.fillStyle = '#ff2a2a';
-        } else {
-            // 🔵 Regular runners stay Blue
-            ctx.fillStyle = '#3a86ff';
-        }
-
-        // Draw the square player block
-        ctx.fillRect(player.x, player.y, 30, 30);
-
-        // Keep your green selection border around your local controlled square
-        if (id === socket.id) {
-            ctx.strokeStyle = '#00ff00';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(player.x - 2, player.y - 2, 34, 34);
-
-            // Add a text indicator above your own head
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '12px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(id === currentBossId ? "YOU ARE BOSS!" : "RUN!", player.x + 15, player.y - 10);
-        }
-    }
-}
