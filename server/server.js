@@ -1,6 +1,6 @@
 // server/server.js
 const { WebSocketServer } = require('ws');
-const { updatePlayerPosition, checkCollision } = require('../shared/physics.js');
+const { updatePlayerPosition, checkCollision } = require('../client/physics.js');
 
 const wss = new WebSocketServer({ port: 3000 });
 
