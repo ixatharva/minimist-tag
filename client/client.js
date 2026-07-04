@@ -140,3 +140,9 @@ touchButtons.forEach(button => {
     }, { passive: false });
 });
 // ... Rest of your existing client loop and WebSocket code ...
+const IS_PRODUCTION = window.location.hostname !== "localhost";
+const SERVER_URL = IS_PRODUCTION
+    ? "wss://linoleum-overbook-backtrack.ngrok-free.dev"
+    : "ws://localhost:3000";
+
+const socket = new WebSocket(SERVER_URL);
