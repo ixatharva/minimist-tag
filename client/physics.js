@@ -42,6 +42,11 @@ function checkCollision(p1, p2) {
 }
 
 // Export for Node.js if running in backend, otherwise expose globally to the browser
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { updatePlayerPosition, checkCollision, CANVAS_WIDTH, CANVAS_HEIGHT, PLAYER_SIZE };
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    // If running in Node.js (Server)
+    module.exports = { updatePlayerPosition, checkCollision };
+} else {
+    // If running in the Browser (Client)
+    window.updatePlayerPosition = updatePlayerPosition;
+    window.checkCollision = checkCollision;
 }
