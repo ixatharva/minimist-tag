@@ -1,8 +1,13 @@
+const IS_PRODUCTION = window.location.hostname !== "localhost";
+const SERVER_URL = IS_PRODUCTION
+    ? "wss://linoleum-overbook-backtrack.ngrok-free.dev"
+    : "ws://localhost:3000";
+
+const socket = new WebSocket(SERVER_URL);
+
 // client/client.js
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-
-const socket = new WebSocket('ws://localhost:3000');
 
 let myId = null;
 let serverPlayersState = {};
@@ -105,9 +110,6 @@ function gameLoop(currentTime) {
     });
 }
 requestAnimationFrame(gameLoop);
-// ... Existing keyboard code ...
-window.addEventListener('keydown', (e) => handleKey(e, true));
-window.addEventListener('keyup', (e) => handleKey(e, false));
 
 // --- MOBILE TOUCH CONTROLS ---
 const touchButtons = [
@@ -139,10 +141,3 @@ touchButtons.forEach(button => {
         keys[button.key] = false;
     }, { passive: false });
 });
-// ... Rest of your existing client loop and WebSocket code ...
-const IS_PRODUCTION = window.location.hostname !== "localhost";
-const SERVER_URL = IS_PRODUCTION
-    ? "wss://linoleum-overbook-backtrack.ngrok-free.dev"
-    : "ws://localhost:3000";
-
-const socket = new WebSocket(SERVER_URL);
