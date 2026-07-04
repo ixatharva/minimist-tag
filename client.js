@@ -92,13 +92,24 @@ function gameLoop(currentTime) {
         let x, y;
 
         if (id === myId) {
-            // Render our predicted/reconciled smooth location
+            // Your local block stays crisp and instant using local prediction
             x = localPlayer.x;
             y = localPlayer.y;
         } else {
-            // Render enemy players directly using latest server update
-            x = serverPlayersState[id].x;
-            y = serverPlayersState[id].y;
+            // 🌟 SMOOTH MOVEMENT (LERP) FOR ENEMY PLAYERS
+            // If we don't have a record of their position yet, initialize it
+            if (!serverPlayersState[id].currentVisualX) {
+                serverPlayersState[id].currentVisualX = serverPlayersState[id].x;
+                serverPlayersState[id].currentVisualY = serverPlayersState[id].y;
+            }
+
+            // Linearly interpolate 15% of the distance toward the true server position every frame
+            const lerpFactor = 0.15;
+            serverPlayersState[id].currentVisualX += (serverPlayersState[id].x - serverPlayersState[id].currentVisualX) * lerpFactor;
+            serverPlayersState[id].currentVisualY += (serverPlayersState[id].y - serverPlayersState[id].currentVisualY) * lerpFactor;
+
+            x = serverPlayersState[id].currentVisualX;
+            y = serverPlayersState[id].currentVisualY;
         }
 
         // 🔴 The Boss gets an aggressive Red crimson block style, others stay Blue
